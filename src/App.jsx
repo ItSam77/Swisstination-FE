@@ -21,8 +21,6 @@ function App() {
         return <Login />
       case 'signup':
         return <Signup />
-      case 'test':
-        return <ApiTest />
       default:
         return <Login />
     }
@@ -30,21 +28,6 @@ function App() {
 
   return (
     <>
-      <div className="nav-container">
-        <button 
-          className={`nav-button ${currentPage === 'login' ? 'active' : ''}`}
-          onClick={() => setCurrentPage('login')}
-        >
-          Login
-        </button>
-        <button 
-          className={`nav-button ${currentPage === 'signup' ? 'active' : ''}`}
-          onClick={() => setCurrentPage('signup')}
-        >
-          Sign Up
-        </button>
-      </div>
-      
       {renderPage()}
     </>
   )
