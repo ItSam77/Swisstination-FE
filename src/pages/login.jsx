@@ -24,6 +24,12 @@ const Login = () => {
         const storage = rememberMe ? localStorage : sessionStorage
         storage.setItem('userSession', JSON.stringify(response.session))
       }
+      
+      // Navigate to preference page after successful login
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('navigate', {detail: 'preference'}))
+      }, 1000) // Small delay to show success message
+      
     } catch (error) {
       setMessage(`Error: ${error.message}`)
     } finally {

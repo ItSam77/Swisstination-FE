@@ -67,4 +67,12 @@ export const authAPI = {
   },
 }
 
-export default { authAPI }
+// Category API calls
+export const categoryAPI = {
+  // Get all categories with labels
+  getCategories: async () => {
+    return makeRequest('/categories')
+  },
+}
+
+export default { authAPI, categoryAPI }

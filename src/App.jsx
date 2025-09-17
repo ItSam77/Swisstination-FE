@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Login from './pages/login'
 import Signup from './pages/signup'
+import Preference from './pages/preference'
 import './App.css'
 
 function App() {
@@ -21,6 +22,8 @@ function App() {
         return <Login />
       case 'signup':
         return <Signup />
+      case 'preference':
+        return <Preference />
       default:
         return <Login />
     }

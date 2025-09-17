@@ -39,20 +39,18 @@ const Signup = () => {
 
     try {
       const response = await authAPI.signup(name, email, password)
-      setMessage(response.message)
       console.log('User signed up:', response.user)
-      
-      // Clear form on success
-      setName('')
-      setEmail('')
-      setPassword('')
-      setConfirmPassword('')
       
       // Store user session if provided
       if (response.session) {
         localStorage.setItem('userSession', JSON.stringify(response.session))
       }
+      
+      // Redirect to login page on successful signup
+      window.dispatchEvent(new CustomEvent('navigate', {detail: 'login'}))
+      
     } catch (error) {
+      // Stay on signup page and show error message
       setMessage(`Error: ${error.message}`)
     } finally {
       setLoading(false)
@@ -81,7 +79,7 @@ const Signup = () => {
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="Enter your full name"
-              className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/20 text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all duration-200"
+              className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/20 text-gray-900 placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all duration-200"
             />
           </div>
 
@@ -96,7 +94,7 @@ const Signup = () => {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="Enter your email"
-              className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/20 text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all duration-200"
+              className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/20 text-gray-900 placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all duration-200"
             />
           </div>
           
@@ -112,7 +110,7 @@ const Signup = () => {
               required
               placeholder="Enter your password"
               minLength="6"
-              className={`"w-full px-4 py-3 rounded-lg border border-white/30 bg-white/20 text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-4 py-3 rounded-lg border border-white/30 bg-white/20 text-gray-900 placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all duration-200 ${
                 errors.password ? 'border-red-400/50 focus:ring-red-400' : ''
               }`}
             />
@@ -132,7 +130,7 @@ const Signup = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               placeholder="Confirm your password"
-              className={`"w-full px-4 py-3 rounded-lg border border-white/30 bg-white/20 text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-4 py-3 rounded-lg border border-white/30 bg-white/20 text-gray-900 placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all duration-200 ${
                 errors.confirmPassword ? 'border-red-400/50 focus:ring-red-400' : ''
               }`}
             />
@@ -160,8 +158,8 @@ const Signup = () => {
         {message && (
           <div className={`mt-4 p-3 rounded-lg text-center text-sm ${
             message.includes('Error') 
-              ? 'bg-red-500/20 border border-red-500/30 text-red-100' 
-              : 'bg-green-500/20 border border-green-500/30 text-green-100'
+              ? 'bg-red-50/90 border border-red-300 text-red-800' 
+              : 'bg-green-50/90 border border-green-300 text-green-800'
           }`}>
             {message}
           </div>
