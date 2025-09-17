@@ -40,15 +40,33 @@ const Preference = () => {
     alert(`You selected: ${selectedLabels.join(', ') || 'No preferences selected'}`)
   }
 
+  const handleLogout = () => {
+    // Clear stored session
+    localStorage.removeItem('userSession')
+    sessionStorage.removeItem('userSession')
+    
+    // Navigate back to login page
+    window.dispatchEvent(new CustomEvent('navigate', {detail: 'login'}))
+  }
+
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
       <CloudBackground />
       
       <div className="backdrop-blur-xl bg-white/20 border border-white/30 rounded-2xl shadow-lg p-8 w-full max-w-2xl relative z-10">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-gray-800 mb-2">Choose Your Preferences</h1>
-          <p className="text-gray-700">Select the categories that interest you most</p>
+        {/* Header with logout button */}
+        <div className="flex justify-between items-start mb-8">
+          <div className="text-center flex-1">
+            <h1 className="text-3xl font-semibold text-gray-800 mb-2">Choose Your Preferences</h1>
+            <p className="text-gray-700">Select the categories that interest you most</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="ml-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-700 rounded-lg transition-all duration-200 text-sm font-medium"
+          >
+            Logout
+          </button>
         </div>
 
         {loading ? (

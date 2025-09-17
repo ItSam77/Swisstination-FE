@@ -19,10 +19,19 @@ const Login = () => {
       setMessage(response.message)
       console.log('User logged in:', response.user)
       
-      // Store user session
-      if (response.session) {
+      // Store user session (clear any existing session first)
+      localStorage.removeItem('userSession')
+      sessionStorage.removeItem('userSession')
+      
+      if (response.session && response.access_token) {
+        const sessionData = {
+          ...response.session,
+          access_token: response.access_token,
+          token_type: response.token_type
+        }
+        
         const storage = rememberMe ? localStorage : sessionStorage
-        storage.setItem('userSession', JSON.stringify(response.session))
+        storage.setItem('userSession', JSON.stringify(sessionData))
       }
       
       // Navigate to preference page after successful login

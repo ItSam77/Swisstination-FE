@@ -2,6 +2,26 @@
 
 const API_BASE_URL = 'http://localhost:8080'
 
+// Helper function to get stored token
+const getStoredToken = () => {
+  try {
+    const localSession = localStorage.getItem('userSession')
+    const sessionSession = sessionStorage.getItem('userSession')
+    
+    const session = localSession || sessionSession
+    
+    if (session) {
+      const parsedSession = JSON.parse(session)
+      return parsedSession.access_token
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Error getting stored token:', error)
+    return null
+  }
+}
+
 // Helper function to make API requests
 const makeRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`
@@ -12,6 +32,12 @@ const makeRequest = async (endpoint, options = {}) => {
       ...options.headers,
     },
     ...options,
+  }
+
+  // Add Authorization header if token exists and not already provided
+  const token = getStoredToken()
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`
   }
 
   try {
@@ -64,6 +90,11 @@ export const authAPI = {
   // Get current user
   getCurrentUser: async () => {
     return makeRequest('/auth/user')
+  },
+
+  // Verify token
+  verifyToken: async () => {
+    return makeRequest('/auth/verify')
   },
 }
 
