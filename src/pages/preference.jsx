@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { categoryAPI } from '../services/api'
+import { categoryAPI, userAPI } from '../services/api'
 import CloudBackground from '../components/CloudBackground'
 
 const Preference = () => {
@@ -7,6 +7,7 @@ const Preference = () => {
   const [selectedLabels, setSelectedLabels] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     fetchCategories()
@@ -33,11 +34,46 @@ const Preference = () => {
     )
   }
 
-  const handleContinue = () => {
-    console.log('Selected preferences:', selectedLabels)
-    // Here you can add navigation logic or pass the selected labels to parent component
-    // For now, we'll just show an alert
-    alert(`You selected: ${selectedLabels.join(', ') || 'No preferences selected'}`)
+  const handleContinue = async () => {
+    if (selectedLabels.length === 0) {
+      setError('Please select at least one preference')
+      return
+    }
+
+    setSaving(true)
+    setError('')
+
+    try {
+      // Convert selected labels to preferences with kategori_id
+      const selectedPreferences = categories
+        .filter(category => selectedLabels.includes(category.label))
+        .map(category => ({
+          kategori_id: category.kategori_id,
+          weight: 1.0 // Default weight
+        }))
+
+      console.log('Saving preferences:', selectedPreferences)
+
+      // Save preferences to backend
+      const response = await userAPI.savePreferences(selectedPreferences)
+      
+      console.log('Preferences saved successfully:', response)
+      
+      // Show success message briefly then navigate to dashboard
+      setError('')
+      alert(`${response.message} Saved ${response.saved_count} preferences.`)
+      
+      // Navigate to dashboard after short delay
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('navigate', {detail: 'dashboard'}))
+      }, 1500)
+      
+    } catch (error) {
+      console.error('Error saving preferences:', error)
+      setError(`Failed to save preferences: ${error.message}`)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleLogout = () => {
@@ -131,10 +167,19 @@ const Preference = () => {
             <div className="flex justify-center">
               <button
                 onClick={handleContinue}
-                disabled={selectedLabels.length === 0}
+                disabled={selectedLabels.length === 0 || saving}
                 className="w-full max-w-md py-4 px-6 bg-gradient-to-r from-sky-400 to-teal-400 text-white font-medium rounded-xl hover:from-sky-500 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
               >
-                {selectedLabels.length === 0 ? 'Select at least one preference' : `Continue with ${selectedLabels.length} preference${selectedLabels.length > 1 ? 's' : ''}`}
+                {saving ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Saving preferences...
+                  </div>
+                ) : selectedLabels.length === 0 ? (
+                  'Select at least one preference'
+                ) : (
+                  `Continue with ${selectedLabels.length} preference${selectedLabels.length > 1 ? 's' : ''}`
+                )}
               </button>
             </div>
           </>

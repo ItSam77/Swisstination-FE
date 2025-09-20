@@ -106,4 +106,22 @@ export const categoryAPI = {
   },
 }
 
-export default { authAPI, categoryAPI }
+// User API calls
+export const userAPI = {
+  // Save user preferences
+  savePreferences: async (preferences) => {
+    return makeRequest('/users/preferences', {
+      method: 'POST',
+      body: JSON.stringify({
+        preferences: preferences
+      }),
+    })
+  },
+
+  // Get user preferences
+  getPreferences: async () => {
+    return makeRequest('/users/preferences')
+  },
+}
+
+export default { authAPI, categoryAPI, userAPI }
