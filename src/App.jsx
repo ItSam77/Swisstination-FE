@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import Login from './pages/login'
 import Signup from './pages/signup'
 import Preference from './pages/preference'
-import Dashboard from './pages/dashboard'
-import { authAPI } from './services/api'
+import LandingPage from './pages/landingpage'
+import Review from './pages/review'
+import { authAPI, userAPI } from './services/api'
 import './App.css'
 
 function App() {
@@ -29,8 +30,21 @@ function App() {
               const response = await authAPI.verifyToken()
               
               if (response.valid) {
-                // Token is valid, redirect to preference
-                setCurrentPage('preference')
+                // Token is valid, check if user has preferences
+                try {
+                  const preferencesStatus = await userAPI.checkPreferencesStatus()
+                  if (preferencesStatus.has_preferences) {
+                    // User has preferences, go to landing page
+                    setCurrentPage('landingpage')
+                  } else {
+                    // User doesn't have preferences, go to preference page
+                    setCurrentPage('preference')
+                  }
+                } catch (prefError) {
+                  console.error('Error checking preferences status on app load:', prefError)
+                  // If preferences check fails, default to preference page
+                  setCurrentPage('preference')
+                }
               } else {
                 // Token is invalid, clear storage and stay on login
                 localStorage.removeItem('userSession')
@@ -86,8 +100,10 @@ function App() {
         return <Signup />
       case 'preference':
         return <Preference />
-      case 'dashboard':
-        return <Dashboard />
+      case 'landingpage':
+        return <LandingPage />
+      case 'review':
+        return <Review />
       default:
         return <Login />
     }

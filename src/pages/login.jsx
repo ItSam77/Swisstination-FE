@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { authAPI } from '../services/api'
+import { authAPI, userAPI } from '../services/api'
 import CloudBackground from '../components/CloudBackground'
 
 const Login = () => {
@@ -34,10 +34,29 @@ const Login = () => {
         storage.setItem('userSession', JSON.stringify(sessionData))
       }
       
-      // Navigate to preference page after successful login
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('navigate', {detail: 'preference'}))
-      }, 1000) // Small delay to show success message
+      // Check if user has preferences set before navigation
+      try {
+        const preferencesStatus = await userAPI.checkPreferencesStatus()
+        console.log('Preferences status:', preferencesStatus)
+        
+        // Navigate based on whether user has preferences
+        setTimeout(() => {
+          if (preferencesStatus.has_preferences) {
+            // User has preferences, skip to landing page
+            window.dispatchEvent(new CustomEvent('navigate', {detail: 'landingpage'}))
+          } else {
+            // User doesn't have preferences, go to preference page
+            window.dispatchEvent(new CustomEvent('navigate', {detail: 'preference'}))
+          }
+        }, 1000) // Small delay to show success message
+        
+      } catch (prefError) {
+        console.error('Error checking preferences status:', prefError)
+        // If preferences check fails, default to preference page
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('navigate', {detail: 'preference'}))
+        }, 1000)
+      }
       
     } catch (error) {
       setMessage(`Error: ${error.message}`)

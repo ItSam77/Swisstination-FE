@@ -122,6 +122,32 @@ export const userAPI = {
   getPreferences: async () => {
     return makeRequest('/users/preferences')
   },
+
+  // Check if user has preferences set
+  checkPreferencesStatus: async () => {
+    return makeRequest('/users/preferences/status')
+  },
 }
 
-export default { authAPI, categoryAPI, userAPI }
+// Recommendation API calls
+export const recommendationAPI = {
+  // Get personalized recommendations based on user preferences
+  getRecommendations: async (n = 10) => {
+    return makeRequest(`/recommendations?n=${n}`)
+  },
+
+  // Get recommendations for a specific category
+  getRecommendationsByCategory: async (categoryId, n = 10) => {
+    return makeRequest(`/recommendations/categories/${categoryId}?n=${n}`)
+  },
+
+  // Get cold start recommendations for specific categories (for testing)
+  getColdStartRecommendations: async (categoryIds, n = 10) => {
+    return makeRequest(`/recommendations/cold-start?n=${n}`, {
+      method: 'POST',
+      body: JSON.stringify(categoryIds),
+    })
+  },
+}
+
+export default { authAPI, categoryAPI, userAPI, recommendationAPI }

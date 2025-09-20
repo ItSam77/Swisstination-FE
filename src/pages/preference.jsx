@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { categoryAPI, userAPI } from '../services/api'
+import { categoryAPI, userAPI, recommendationAPI } from '../services/api'
 import CloudBackground from '../components/CloudBackground'
 
 const Preference = () => {
@@ -8,6 +8,9 @@ const Preference = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [recommendations, setRecommendations] = useState([])
+  const [showRecommendations, setShowRecommendations] = useState(false)
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false)
 
   useEffect(() => {
     fetchCategories()
@@ -59,14 +62,27 @@ const Preference = () => {
       
       console.log('Preferences saved successfully:', response)
       
-      // Show success message briefly then navigate to dashboard
+      // Show success message
       setError('')
-      alert(`${response.message} Saved ${response.saved_count} preferences.`)
       
-      // Navigate to dashboard after short delay
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('navigate', {detail: 'dashboard'}))
-      }, 1500)
+      // Get recommendations based on saved preferences
+      setLoadingRecommendations(true)
+      try {
+        const recommendationResponse = await recommendationAPI.getRecommendations(10)
+        console.log('Recommendations received:', recommendationResponse)
+        
+        setRecommendations(recommendationResponse.recommendations || [])
+        setShowRecommendations(true)
+        
+        // Show success message with recommendation info
+        alert(`${response.message} Saved ${response.saved_count} preferences. Got ${recommendationResponse.recommendations?.length || 0} recommendations!`)
+        
+      } catch (recError) {
+        console.error('Error getting recommendations:', recError)
+        setError(`Preferences saved but failed to get recommendations: ${recError.message}`)
+      } finally {
+        setLoadingRecommendations(false)
+      }
       
     } catch (error) {
       console.error('Error saving preferences:', error)
@@ -74,6 +90,11 @@ const Preference = () => {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleViewDashboard = () => {
+    // Navigate to landing page after viewing recommendations
+    window.dispatchEvent(new CustomEvent('navigate', {detail: 'landingpage'}))
   }
 
   const handleLogout = () => {
@@ -185,7 +206,7 @@ const Preference = () => {
           </>
         )}
 
-        {selectedLabels.length > 0 && (
+        {selectedLabels.length > 0 && !showRecommendations && (
           <div className="mt-6 p-4 bg-sky-400/10 border border-sky-400/30 rounded-lg">
             <h3 className="text-sm font-medium text-sky-800 mb-2">Selected preferences:</h3>
             <div className="flex flex-wrap gap-2">
@@ -198,6 +219,74 @@ const Preference = () => {
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Recommendations Section */}
+        {showRecommendations && (
+          <div className="mt-6 p-6 bg-gradient-to-br from-green-400/10 to-emerald-400/10 border border-green-400/30 rounded-xl">
+            <div className="text-center mb-4">
+              <h3 className="text-xl font-semibold text-green-800 mb-2">🎯 Your Personalized Recommendations</h3>
+              <p className="text-green-700 text-sm">Based on your selected preferences</p>
+            </div>
+
+            {loadingRecommendations ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400"></div>
+                <span className="ml-3 text-green-700">Getting your recommendations...</span>
+              </div>
+            ) : recommendations.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                  {recommendations.slice(0, 6).map((rec, index) => (
+                    <div 
+                      key={rec.destinasi_id}
+                      className="p-3 bg-white/20 border border-green-400/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-all duration-200"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-green-800">Destination #{rec.destinasi_id}</h4>
+                          <p className="text-sm text-green-600">Match Score: {(rec.score * 100).toFixed(1)}%</p>
+                        </div>
+                        <span className="text-lg font-bold text-green-700">#{index + 1}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {recommendations.length > 6 && (
+                  <p className="text-center text-green-600 text-sm mb-4">
+                    + {recommendations.length - 6} more recommendations available
+                  </p>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    onClick={handleViewDashboard}
+                    className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-400 text-white font-medium rounded-lg hover:from-green-500 hover:to-emerald-500 transition-all duration-200 transform hover:scale-[1.02]"
+                  >
+                    View Full Dashboard
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowRecommendations(false)}
+                    className="px-6 py-3 bg-white/20 border border-green-400/30 text-green-700 font-medium rounded-lg hover:bg-white/30 transition-all duration-200"
+                  >
+                    Back to Preferences
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-green-600 mb-4">No recommendations available at the moment.</p>
+                <button
+                  onClick={handleViewDashboard}
+                  className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-400 text-white font-medium rounded-lg hover:from-green-500 hover:to-emerald-500 transition-all duration-200"
+                >
+                  Continue to Dashboard
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
