@@ -150,4 +150,25 @@ export const recommendationAPI = {
   },
 }
 
-export default { authAPI, categoryAPI, userAPI, recommendationAPI }
+// Destination API calls
+export const destinationAPI = {
+  // Get all destinations
+  getAllDestinations: async () => {
+    return makeRequest('/destinations')
+  },
+
+  // Get destination by ID
+  getDestinationById: async (destinationId) => {
+    return makeRequest(`/destinations/${destinationId}`)
+  },
+
+  // Get multiple destinations by IDs
+  getDestinationsByIds: async (destinationIds) => {
+    return makeRequest('/destinations/batch', {
+      method: 'POST',
+      body: JSON.stringify(destinationIds),
+    })
+  },
+}
+
+export default { authAPI, categoryAPI, userAPI, recommendationAPI, destinationAPI }

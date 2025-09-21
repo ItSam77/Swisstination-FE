@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { userAPI, authAPI, recommendationAPI } from '../services/api'
+import { userAPI, authAPI, recommendationAPI, destinationAPI } from '../services/api'
 import profileImage from '../assets/profile.png'
 import swissLogo from '../assets/swiss.png'
 import gambar1 from '../assets/gambar1.webp'
@@ -10,16 +10,87 @@ const LandingPage = () => {
   const [user, setUser] = useState(null)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [topRecommendations, setTopRecommendations] = useState([])
-  const [loadingRecommendations, setLoadingRecommendations] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [recommendations, setRecommendations] = useState([])
+  const [destinationDetails, setDestinationDetails] = useState({})
+  const [loadingRecommendations, setLoadingRecommendations] = useState(true)
+  const [displayCount, setDisplayCount] = useState(3) // Start with 3 recommendations
+  const [hoveredDestination, setHoveredDestination] = useState(null)
 
   const heroImages = [gambar1, gambar2, gambar3]
 
   useEffect(() => {
     fetchUserProfile()
-    fetchTopRecommendations()
+    fetchRecommendations()
   }, [])
+
+  const fetchRecommendations = async () => {
+    try {
+      setLoadingRecommendations(true)
+      const response = await recommendationAPI.getRecommendations(37) // Get all 37 recommendations
+      setRecommendations(response.recommendations || [])
+      
+      // Fetch destination details for recommendations
+      if (response.recommendations && response.recommendations.length > 0) {
+        await fetchDestinationDetails(response.recommendations)
+      }
+    } catch (error) {
+      console.error('Error fetching recommendations:', error)
+      setRecommendations([])
+    } finally {
+      setLoadingRecommendations(false)
+    }
+  }
+
+  const fetchDestinationDetails = async (recs) => {
+    try {
+      const destinationIds = recs.map(rec => rec.destinasi_id)
+      console.log('Fetching destination details for IDs:', destinationIds)
+      
+      const destinationsResponse = await destinationAPI.getDestinationsByIds(destinationIds)
+      console.log('Destination API response:', destinationsResponse)
+      
+      if (destinationsResponse && destinationsResponse.length > 0) {
+        const details = {}
+        destinationsResponse.forEach((dest, index) => {
+          details[dest.destinasi_id] = {
+            nama_destinasi: dest.nama_destinasi,
+            deskripsi: dest.deskripsi,
+            kategori_id: dest.kategori_id,
+            category_name: dest.category_name,
+            image_url: dest.image_url || `https://source.unsplash.com/400x300/?switzerland,mountains,${index}` // Fallback to Unsplash if no image_url
+          }
+        })
+        console.log('Setting destination details:', details)
+        setDestinationDetails(details)
+      } else {
+        console.warn('No destination details received, using fallback data')
+        // Use fallback data
+        const mockDetails = {}
+        recs.forEach((rec, index) => {
+        mockDetails[rec.destinasi_id] = {
+          nama_destinasi: `Swiss Destination ${rec.destinasi_id}`,
+          deskripsi: `This is a beautiful destination in Switzerland with breathtaking views and amazing experiences. Perfect for adventure seekers and nature lovers.`,
+          image_url: `https://source.unsplash.com/400x300/?switzerland,mountains,${index}` // Fallback image
+        }
+        })
+        setDestinationDetails(mockDetails)
+      }
+    } catch (error) {
+      console.error('Error fetching destination details:', error)
+      console.error('Error details:', error.message, error.stack)
+      // Fallback to mock data if API fails
+      const mockDetails = {}
+      recs.forEach((rec, index) => {
+        mockDetails[rec.destinasi_id] = {
+          nama_destinasi: `Swiss Destination ${rec.destinasi_id}`,
+          deskripsi: `This is a beautiful destination in Switzerland with breathtaking views and amazing experiences. Perfect for adventure seekers and nature lovers.`,
+          image_url: `https://source.unsplash.com/400x300/?switzerland,mountains,${index}` // Fallback image
+        }
+      })
+      setDestinationDetails(mockDetails)
+    }
+  }
 
   // Image rotation effect
   useEffect(() => {
@@ -56,18 +127,6 @@ const LandingPage = () => {
     }
   }
 
-  const fetchTopRecommendations = async () => {
-    try {
-      setLoadingRecommendations(true)
-      const response = await recommendationAPI.getRecommendations(6) // Get top 6
-      setTopRecommendations(response.recommendations || [])
-    } catch (error) {
-      console.error('Error fetching recommendations:', error)
-      setTopRecommendations([])
-    } finally {
-      setLoadingRecommendations(false)
-    }
-  }
 
   const handleNavigateToReviews = () => {
     window.dispatchEvent(new CustomEvent('navigate', {detail: 'review'}))
@@ -267,53 +326,112 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Top Destinations Section */}
+      {/* Recommendations Section */}
       <section id="destinations" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-800 mb-6">YOUR TOP RECOMMENDATIONS</h2>
+            <h2 className="text-4xl font-bold text-gray-800 mb-6">YOUR PERSONALIZED RECOMMENDATIONS</h2>
             <p className="text-xl text-gray-600">Discover destinations perfectly matched to your preferences</p>
           </div>
           
           {loadingRecommendations ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-              <span className="ml-4 text-xl text-gray-600">Loading your recommendations...</span>
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500"></div>
+              <span className="ml-4 text-2xl text-gray-600">Loading your recommendations...</span>
             </div>
-          ) : topRecommendations.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {topRecommendations.map((rec, index) => (
-                <div
-                  key={rec.destinasi_id}
-                  className="group relative bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden"
-                >
-                  <div className="relative h-64 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                    <span className="text-6xl">🏔️</span>
-                    <div className="absolute top-4 right-4 bg-orange-500 text-white rounded-full px-3 py-1 text-sm font-bold">
-                      #{index + 1}
+          ) : recommendations.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {recommendations.slice(0, displayCount).map((rec, index) => {
+                  const details = destinationDetails[rec.destinasi_id] || {}
+                  return (
+                    <div
+                      key={rec.destinasi_id}
+                      className="group relative bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 overflow-hidden"
+                      onMouseEnter={() => setHoveredDestination(rec.destinasi_id)}
+                      onMouseLeave={() => setHoveredDestination(null)}
+                    >
+                      {/* Image Container */}
+                      <div className="relative h-64 overflow-hidden">
+                        <img
+                          src={details.image_url || `https://source.unsplash.com/400x300/?switzerland,mountains,${index}`}
+                          alt={details.nama_destinasi || `Destination ${rec.destinasi_id}`}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          onError={(e) => {
+                            // Fallback to Unsplash if Supabase image fails to load
+                            e.target.src = `https://source.unsplash.com/400x300/?switzerland,mountains,${index}`
+                          }}
+                          loading="lazy"
+                        />
+                        
+                        {/* Rank Badge */}
+                        <div className="absolute top-4 right-4 bg-orange-500 text-white rounded-full px-3 py-1 text-sm font-bold shadow-lg">
+                          #{index + 1}
+                        </div>
+
+                        {/* Hover Overlay with Description */}
+                        <div className={`absolute inset-0 bg-black/70 backdrop-blur-sm flex items-end transition-all duration-500 ${
+                          hoveredDestination === rec.destinasi_id ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                        }`}>
+                          <div className="p-6 text-white transform transition-transform duration-500">
+                            <h4 className="text-lg font-bold mb-2">
+                              {details.nama_destinasi || `Destination ${rec.destinasi_id}`}
+                            </h4>
+                            <p className="text-sm leading-relaxed">
+                              {details.deskripsi || 'Beautiful Swiss destination with amazing views and experiences.'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Content */}
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold text-gray-800 mb-3">
+                          {details.nama_destinasi || `Swiss Destination ${rec.destinasi_id}`}
+                        </h3>
+                        
+                        <button className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg">
+                          EXPLORE DESTINATION
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">Destination #{rec.destinasi_id}</h3>
-                    <p className="text-orange-500 font-semibold mb-2">Match Score: {(rec.score * 100).toFixed(1)}%</p>
-                    <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                      <div 
-                        className="bg-gradient-to-r from-orange-400 to-red-500 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${rec.score * 100}%` }}
-                      ></div>
-                    </div>
-                    <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg font-semibold transition-colors duration-300">
-                      EXPLORE
-                    </button>
-                  </div>
+                  )
+                })}
+              </div>
+
+              {/* Show More Button */}
+              {displayCount < recommendations.length && (
+                <div className="text-center mt-12">
+                  <button
+                    onClick={() => {
+                      const nextCount = Math.min(displayCount + 9, recommendations.length)
+                      setDisplayCount(nextCount)
+                    }}
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                  >
+                    SHOW MORE DESTINATIONS ({Math.min(9, recommendations.length - displayCount)} more)
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+
+              {/* Total Count Display */}
+              <div className="text-center mt-8">
+                <p className="text-gray-600">
+                  Showing {displayCount} of {recommendations.length} recommendations
+                </p>
+              </div>
+            </>
           ) : (
             <div className="text-center py-20 bg-gray-50 rounded-xl">
               <div className="text-6xl mb-4">🗺️</div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">No Recommendations Yet</h3>
-              <p className="text-gray-600">Complete your preferences to get personalized destination recommendations</p>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">No Recommendations Available</h3>
+              <p className="text-gray-600 mb-6">Complete your preferences to get personalized destination recommendations</p>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('navigate', {detail: 'preference'}))}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-300"
+              >
+                SET PREFERENCES
+              </button>
             </div>
           )}
         </div>
