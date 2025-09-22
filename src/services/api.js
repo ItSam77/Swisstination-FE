@@ -131,19 +131,22 @@ export const userAPI = {
 
 // Recommendation API calls
 export const recommendationAPI = {
-  // Get personalized recommendations based on user preferences
-  getRecommendations: async (n = 10) => {
-    return makeRequest(`/recommendations?n=${n}`)
+  // Get personalized recommendations based on user preferences (all available by default)
+  getRecommendations: async (n = null) => {
+    const url = n ? `/recommendations?n=${n}` : '/recommendations'
+    return makeRequest(url)
   },
 
-  // Get recommendations for a specific category
-  getRecommendationsByCategory: async (categoryId, n = 10) => {
-    return makeRequest(`/recommendations/categories/${categoryId}?n=${n}`)
+  // Get recommendations for a specific category (all available by default)
+  getRecommendationsByCategory: async (categoryId, n = null) => {
+    const url = n ? `/recommendations/categories/${categoryId}?n=${n}` : `/recommendations/categories/${categoryId}`
+    return makeRequest(url)
   },
 
-  // Get cold start recommendations for specific categories (for testing)
-  getColdStartRecommendations: async (categoryIds, n = 10) => {
-    return makeRequest(`/recommendations/cold-start?n=${n}`, {
+  // Get cold start recommendations for specific categories (all available by default)
+  getColdStartRecommendations: async (categoryIds, n = null) => {
+    const url = n ? `/recommendations/cold-start?n=${n}` : '/recommendations/cold-start'
+    return makeRequest(url, {
       method: 'POST',
       body: JSON.stringify(categoryIds),
     })
@@ -171,4 +174,20 @@ export const destinationAPI = {
   },
 }
 
-export default { authAPI, categoryAPI, userAPI, recommendationAPI, destinationAPI }
+// Review API calls
+export const reviewAPI = {
+  // Submit a review and rating for a destination
+  submitReview: async (reviewData) => {
+    return makeRequest('/reviews', {
+      method: 'POST',
+      body: JSON.stringify(reviewData),
+    })
+  },
+
+  // Get all reviews submitted by current user
+  getUserReviews: async () => {
+    return makeRequest('/reviews/user')
+  },
+}
+
+export default { authAPI, categoryAPI, userAPI, recommendationAPI, destinationAPI, reviewAPI }

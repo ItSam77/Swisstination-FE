@@ -8,9 +8,6 @@ const Preference = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
-  const [recommendations, setRecommendations] = useState([])
-  const [showRecommendations, setShowRecommendations] = useState(false)
-  const [loadingRecommendations, setLoadingRecommendations] = useState(false)
 
   useEffect(() => {
     fetchCategories()
@@ -65,24 +62,13 @@ const Preference = () => {
       // Show success message
       setError('')
       
-      // Get recommendations based on saved preferences
-      setLoadingRecommendations(true)
-      try {
-        const recommendationResponse = await recommendationAPI.getRecommendations(10)
-        console.log('Recommendations received:', recommendationResponse)
-        
-        setRecommendations(recommendationResponse.recommendations || [])
-        setShowRecommendations(true)
-        
-        // Show success message with recommendation info
-        alert(`${response.message} Saved ${response.saved_count} preferences. Got ${recommendationResponse.recommendations?.length || 0} recommendations!`)
-        
-      } catch (recError) {
-        console.error('Error getting recommendations:', recError)
-        setError(`Preferences saved but failed to get recommendations: ${recError.message}`)
-      } finally {
-        setLoadingRecommendations(false)
-      }
+      // Automatically redirect to landing page without alert
+      console.log(`${response.message} Saved ${response.saved_count} preferences! Redirecting to your personalized recommendations...`)
+      
+      // Small delay then navigate to landing page
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('navigate', {detail: 'landingpage'}))
+      }, 800)
       
     } catch (error) {
       console.error('Error saving preferences:', error)
@@ -92,19 +78,7 @@ const Preference = () => {
     }
   }
 
-  const handleViewDashboard = () => {
-    // Navigate to landing page after viewing recommendations
-    window.dispatchEvent(new CustomEvent('navigate', {detail: 'landingpage'}))
-  }
 
-  const handleLogout = () => {
-    // Clear stored session
-    localStorage.removeItem('userSession')
-    sessionStorage.removeItem('userSession')
-    
-    // Navigate back to login page
-    window.dispatchEvent(new CustomEvent('navigate', {detail: 'login'}))
-  }
 
 
   return (
@@ -112,18 +86,10 @@ const Preference = () => {
       <CloudBackground />
       
       <div className="backdrop-blur-xl bg-white/20 border border-white/30 rounded-2xl shadow-lg p-8 w-full max-w-2xl relative z-10">
-        {/* Header with logout button */}
-        <div className="flex justify-between items-start mb-8">
-          <div className="text-center flex-1">
-            <h1 className="text-3xl font-semibold text-gray-800 mb-2">Choose Your Preferences</h1>
-            <p className="text-gray-700">Select the categories that interest you most</p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="ml-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-700 rounded-lg transition-all duration-200 text-sm font-medium"
-          >
-            Logout
-          </button>
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-semibold text-gray-800 mb-2">Choose Your Preferences</h1>
+          <p className="text-gray-700">Select the categories that interest you most</p>
         </div>
 
         {loading ? (
@@ -206,7 +172,7 @@ const Preference = () => {
           </>
         )}
 
-        {selectedLabels.length > 0 && !showRecommendations && (
+        {selectedLabels.length > 0 && (
           <div className="mt-6 p-4 bg-sky-400/10 border border-sky-400/30 rounded-lg">
             <h3 className="text-sm font-medium text-sky-800 mb-2">Selected preferences:</h3>
             <div className="flex flex-wrap gap-2">
@@ -222,73 +188,6 @@ const Preference = () => {
           </div>
         )}
 
-        {/* Recommendations Section */}
-        {showRecommendations && (
-          <div className="mt-6 p-6 bg-gradient-to-br from-green-400/10 to-emerald-400/10 border border-green-400/30 rounded-xl">
-            <div className="text-center mb-4">
-              <h3 className="text-xl font-semibold text-green-800 mb-2">🎯 Your Personalized Recommendations</h3>
-              <p className="text-green-700 text-sm">Based on your selected preferences</p>
-            </div>
-
-            {loadingRecommendations ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400"></div>
-                <span className="ml-3 text-green-700">Getting your recommendations...</span>
-              </div>
-            ) : recommendations.length > 0 ? (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                  {recommendations.slice(0, 6).map((rec, index) => (
-                    <div 
-                      key={rec.destinasi_id}
-                      className="p-3 bg-white/20 border border-green-400/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-all duration-200"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-green-800">Destination #{rec.destinasi_id}</h4>
-                          <p className="text-sm text-green-600">Match Score: {(rec.score * 100).toFixed(1)}%</p>
-                        </div>
-                        <span className="text-lg font-bold text-green-700">#{index + 1}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {recommendations.length > 6 && (
-                  <p className="text-center text-green-600 text-sm mb-4">
-                    + {recommendations.length - 6} more recommendations available
-                  </p>
-                )}
-
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <button
-                    onClick={handleViewDashboard}
-                    className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-400 text-white font-medium rounded-lg hover:from-green-500 hover:to-emerald-500 transition-all duration-200 transform hover:scale-[1.02]"
-                  >
-                    View Full Dashboard
-                  </button>
-                  
-                  <button
-                    onClick={() => setShowRecommendations(false)}
-                    className="px-6 py-3 bg-white/20 border border-green-400/30 text-green-700 font-medium rounded-lg hover:bg-white/30 transition-all duration-200"
-                  >
-                    Back to Preferences
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-green-600 mb-4">No recommendations available at the moment.</p>
-                <button
-                  onClick={handleViewDashboard}
-                  className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-400 text-white font-medium rounded-lg hover:from-green-500 hover:to-emerald-500 transition-all duration-200"
-                >
-                  Continue to Dashboard
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   )

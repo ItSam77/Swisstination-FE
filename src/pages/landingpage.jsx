@@ -5,6 +5,7 @@ import swissLogo from '../assets/swiss.png'
 import gambar1 from '../assets/gambar1.webp'
 import gambar2 from '../assets/gambar2.webp'
 import gambar3 from '../assets/gambar3.webp'
+import DestinationDetail from './destinationDetail'
 
 const LandingPage = () => {
   const [user, setUser] = useState(null)
@@ -14,8 +15,13 @@ const LandingPage = () => {
   const [recommendations, setRecommendations] = useState([])
   const [destinationDetails, setDestinationDetails] = useState({})
   const [loadingRecommendations, setLoadingRecommendations] = useState(true)
-  const [displayCount, setDisplayCount] = useState(3) // Start with 3 recommendations
+  const [displayCount, setDisplayCount] = useState(9) // Start with 9 recommendations, then show more
   const [hoveredDestination, setHoveredDestination] = useState(null)
+  const [hasClickedShowMore, setHasClickedShowMore] = useState(false) // Track if user has clicked show more
+  const [typewriterText, setTypewriterText] = useState('') // For typewriter animation
+  const [isTypingComplete, setIsTypingComplete] = useState(false)
+  const [selectedDestinationId, setSelectedDestinationId] = useState(null) // For destination detail view
+  const [isDarkMode] = useState(true) // Static dark mode
 
   const heroImages = [gambar1, gambar2, gambar3]
 
@@ -24,10 +30,31 @@ const LandingPage = () => {
     fetchRecommendations()
   }, [])
 
+  // Typewriter animation effect
+  useEffect(() => {
+    const fullText = `Hi, ${user?.name || 'Traveler'}! Experience the most beautiful destinations in Switzerland with AI-powered recommendations tailored just for you.`
+    let currentIndex = 0
+    
+    const typeInterval = setInterval(() => {
+      if (currentIndex <= fullText.length) {
+        setTypewriterText(fullText.slice(0, currentIndex))
+        currentIndex++
+      } else {
+        setIsTypingComplete(true)
+        clearInterval(typeInterval)
+      }
+    }, 50) // Typing speed: 50ms per character
+
+    return () => clearInterval(typeInterval)
+  }, [user?.name]) // Re-run when user name changes
+
   const fetchRecommendations = async () => {
     try {
       setLoadingRecommendations(true)
-      const response = await recommendationAPI.getRecommendations(37) // Get all 37 recommendations
+      const response = await recommendationAPI.getRecommendations() // Get all available recommendations
+      console.log('[DEBUG] Full recommendation response:', response)
+      console.log('[DEBUG] Number of recommendations received:', response.recommendations?.length || 0)
+      console.log('[DEBUG] Recommendation type:', response.recommendation_type)
       setRecommendations(response.recommendations || [])
       
       // Fetch destination details for recommendations
@@ -37,6 +64,30 @@ const LandingPage = () => {
     } catch (error) {
       console.error('Error fetching recommendations:', error)
       setRecommendations([])
+    } finally {
+      setLoadingRecommendations(false)
+    }
+  }
+
+  const fetchAllRecommendations = async () => {
+    try {
+      setLoadingRecommendations(true)
+      // Use cold start with all categories to get all destinations
+      const allCategories = [1, 2, 3, 4, 5, 6, 7] // All available categories
+      const response = await recommendationAPI.getColdStartRecommendations(allCategories)
+      console.log('[DEBUG] All destinations response:', response)
+      console.log('[DEBUG] Number of all destinations received:', response.recommendations?.length || 0)
+      setRecommendations(response.recommendations || [])
+      setDisplayCount(9) // Reset display count
+      
+      // Fetch destination details for recommendations
+      if (response.recommendations && response.recommendations.length > 0) {
+        await fetchDestinationDetails(response.recommendations)
+      }
+    } catch (error) {
+      console.error('Error fetching all recommendations:', error)
+      // Fallback to regular recommendations
+      await fetchRecommendations()
     } finally {
       setLoadingRecommendations(false)
     }
@@ -132,6 +183,20 @@ const LandingPage = () => {
     window.dispatchEvent(new CustomEvent('navigate', {detail: 'review'}))
   }
 
+  const handleDestinationClick = (destinationId) => {
+    console.log('Opening destination detail for ID:', destinationId)
+    setSelectedDestinationId(destinationId)
+  }
+
+  const handleBackToRecommendations = () => {
+    setSelectedDestinationId(null)
+  }
+
+  // Apply dark mode class on component mount (static dark mode)
+  useEffect(() => {
+    document.documentElement.classList.add('dark')
+  }, [])
+
   const handleLogout = async () => {
     setIsLoggingOut(true)
     setShowProfileDropdown(false)
@@ -144,8 +209,18 @@ const LandingPage = () => {
     window.dispatchEvent(new CustomEvent('navigate', {detail: 'login'}))
   }
 
+  // Show destination detail if a destination is selected
+  if (selectedDestinationId) {
+    return (
+      <DestinationDetail 
+        destinationId={selectedDestinationId}
+        onBack={handleBackToRecommendations}
+      />
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
       {/* Logout Loading Overlay */}
       {isLoggingOut && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -210,34 +285,34 @@ const LandingPage = () => {
               {/* Dropdown Menu */}
               {showProfileDropdown && (
                 <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl py-2 z-50">
-                  <div className="px-4 py-3 border-b border-gray-200/50">
-                    <div className="flex items-center space-x-3">
-                      <img
-                        src={profileImage}
-                        alt="Profile"
-                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-300"
-                      />
-                      <div>
-                        <p className="font-medium text-gray-800">{user?.name || 'User'}</p>
-                        <p className="text-sm text-gray-600">{user?.email || 'user@example.com'}</p>
+                    <div className="px-4 py-3 border-b border-gray-200/50">
+                      <div className="flex items-center space-x-3">
+                        <img
+                          src={profileImage}
+                          alt="Profile"
+                          className="w-10 h-10 rounded-full object-cover border-2 border-gray-300"
+                        />
+                        <div>
+                          <p className="font-medium text-gray-800">{user?.name || 'User'}</p>
+                          <p className="text-sm text-gray-600">{user?.email || 'user@example.com'}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <button
-                    onClick={handleLogout}
-                    disabled={isLoggingOut}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-500/10 transition-colors duration-200 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isLoggingOut ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                    )}
-                    <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
-                  </button>
+                    
+                    <button
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-500/10 transition-colors duration-200 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoggingOut ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                      )}
+                      <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+                    </button>
                 </div>
               )}
             </div>
@@ -270,15 +345,22 @@ const LandingPage = () => {
             <h1 className="text-5xl md:text-7xl font-bold mb-6">
               DISCOVER SWITZERLAND
             </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto">
-              Hi, {user?.name || 'Traveler'}! Experience the most beautiful destinations in Switzerland with AI-powered recommendations tailored just for you.
-            </p>
-            <button 
-              onClick={() => document.getElementById('destinations').scrollIntoView({ behavior: 'smooth' })}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors duration-300 transform hover:scale-105"
-            >
-              EXPLORE DESTINATIONS
-            </button>
+            <div className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto min-h-[120px] flex items-center justify-center">
+              <p className="relative">
+                {typewriterText}
+                {!isTypingComplete && (
+                  <span className="inline-block w-0.5 h-6 bg-white ml-1 animate-pulse">|</span>
+                )}
+              </p>
+            </div>
+            <div className={`transition-opacity duration-1000 ${isTypingComplete ? 'opacity-100' : 'opacity-0'}`}>
+              <button 
+                onClick={() => document.getElementById('destinations').scrollIntoView({ behavior: 'smooth' })}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105"
+              >
+                EXPLORE DESTINATIONS
+              </button>
+            </div>
           </div>
         </div>
 
@@ -297,47 +379,47 @@ const LandingPage = () => {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-20 bg-gray-50">
+      <section id="about" className="py-20 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-800 mb-6">What is Swisstination?</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-6">What is Swisstination?</h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Your intelligent travel companion powered by advanced AI technology, designed to discover the perfect Swiss destinations based on your unique preferences.
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center p-8 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div className="text-center p-8 bg-white dark:bg-gray-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
               <div className="text-5xl mb-4">🎯</div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">AI-Powered</h3>
-              <p className="text-gray-600">Advanced machine learning algorithms analyze your preferences to deliver personalized recommendations.</p>
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">AI-Powered</h3>
+              <p className="text-gray-600 dark:text-gray-300">Advanced machine learning algorithms analyze your preferences to deliver personalized recommendations.</p>
             </div>
-            <div className="text-center p-8 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div className="text-center p-8 bg-white dark:bg-gray-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
               <div className="text-5xl mb-4">🏔️</div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Swiss Focus</h3>
-              <p className="text-gray-600">Specialized in Switzerland's most breathtaking destinations and hidden gems.</p>
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Swiss Focus</h3>
+              <p className="text-gray-600 dark:text-gray-300">Specialized in Switzerland's most breathtaking destinations and hidden gems.</p>
             </div>
-            <div className="text-center p-8 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div className="text-center p-8 bg-white dark:bg-gray-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
               <div className="text-5xl mb-4">⭐</div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Personalized</h3>
-              <p className="text-gray-600">Every recommendation is tailored to match your travel style and interests.</p>
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Personalized</h3>
+              <p className="text-gray-600 dark:text-gray-300">Every recommendation is tailored to match your travel style and interests.</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Recommendations Section */}
-      <section id="destinations" className="py-20 bg-white">
+      <section id="destinations" className="py-20 bg-white dark:bg-gray-900 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-800 mb-6">YOUR PERSONALIZED RECOMMENDATIONS</h2>
-            <p className="text-xl text-gray-600">Discover destinations perfectly matched to your preferences</p>
+            <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-6">YOUR PERSONALIZED RECOMMENDATIONS</h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300">Discover destinations perfectly matched to your preferences</p>
           </div>
           
           {loadingRecommendations ? (
             <div className="flex items-center justify-center py-20">
               <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500"></div>
-              <span className="ml-4 text-2xl text-gray-600">Loading your recommendations...</span>
+              <span className="ml-4 text-2xl text-gray-600 dark:text-gray-300">Loading your recommendations...</span>
             </div>
           ) : recommendations.length > 0 ? (
             <>
@@ -347,7 +429,7 @@ const LandingPage = () => {
                   return (
                     <div
                       key={rec.destinasi_id}
-                      className="group relative bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 overflow-hidden"
+                      className="group relative bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 overflow-hidden"
                       onMouseEnter={() => setHoveredDestination(rec.destinasi_id)}
                       onMouseLeave={() => setHoveredDestination(null)}
                     >
@@ -364,10 +446,6 @@ const LandingPage = () => {
                           loading="lazy"
                         />
                         
-                        {/* Rank Badge */}
-                        <div className="absolute top-4 right-4 bg-orange-500 text-white rounded-full px-3 py-1 text-sm font-bold shadow-lg">
-                          #{index + 1}
-                        </div>
 
                         {/* Hover Overlay with Description */}
                         <div className={`absolute inset-0 bg-black/70 backdrop-blur-sm flex items-end transition-all duration-500 ${
@@ -386,11 +464,14 @@ const LandingPage = () => {
 
                       {/* Card Content */}
                       <div className="p-6">
-                        <h3 className="text-xl font-bold text-gray-800 mb-3">
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-3">
                           {details.nama_destinasi || `Swiss Destination ${rec.destinasi_id}`}
                         </h3>
                         
-                        <button className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        <button 
+                          onClick={() => handleDestinationClick(rec.destinasi_id)}
+                          className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                        >
                           EXPLORE DESTINATION
                         </button>
                       </div>
@@ -406,6 +487,7 @@ const LandingPage = () => {
                     onClick={() => {
                       const nextCount = Math.min(displayCount + 9, recommendations.length)
                       setDisplayCount(nextCount)
+                      setHasClickedShowMore(true) // Mark that user has clicked show more
                     }}
                     className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
                   >
@@ -416,16 +498,29 @@ const LandingPage = () => {
 
               {/* Total Count Display */}
               <div className="text-center mt-8">
-                <p className="text-gray-600">
-                  Showing {displayCount} of {recommendations.length} recommendations
+                <p className="text-gray-600 dark:text-gray-300">
+                  Showing {Math.min(displayCount, recommendations.length)} of {recommendations.length} recommendations
                 </p>
+                {recommendations.length < 37 && hasClickedShowMore && displayCount >= recommendations.length && (
+                  <div className="mt-6">
+                    <p className="text-lg text-gray-700 dark:text-gray-300 mb-4 font-medium">
+                      Tidak menemukan yang sesuai? Cek lebih banyak destinasi lainnya.
+                    </p>
+                    <button
+                      onClick={fetchAllRecommendations}
+                      className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors duration-300"
+                    >
+                      LIHAT LEBIH BANYAK
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           ) : (
-            <div className="text-center py-20 bg-gray-50 rounded-xl">
+            <div className="text-center py-20 bg-gray-50 dark:bg-gray-800 rounded-xl">
               <div className="text-6xl mb-4">🗺️</div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">No Recommendations Available</h3>
-              <p className="text-gray-600 mb-6">Complete your preferences to get personalized destination recommendations</p>
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">No Recommendations Available</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">Complete your preferences to get personalized destination recommendations</p>
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('navigate', {detail: 'preference'}))}
                 className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-300"
@@ -438,10 +533,10 @@ const LandingPage = () => {
       </section>
 
       {/* Reviews Section */}
-      <section id="reviews" className="py-20 bg-gray-50">
+      <section id="reviews" className="py-20 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold text-gray-800 mb-6">SHARE YOUR EXPERIENCE</h2>
-          <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
+          <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-6">SHARE YOUR EXPERIENCE</h2>
+          <p className="text-xl text-gray-600 dark:text-gray-300 mb-12 max-w-3xl mx-auto">
             Help us improve our AI recommendations by sharing your travel experiences. Your reviews make our suggestions even better!
           </p>
           <button
@@ -454,7 +549,7 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8">
+      <footer className="bg-gray-800 dark:bg-gray-900 text-white py-8 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
