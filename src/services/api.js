@@ -1,6 +1,6 @@
 // API service for backend communication
 
-const API_BASE_URL = 'http://localhost:8080'
+const API_BASE_URL = 'http://localhost:8001'
 
 // Helper function to get stored token
 const getStoredToken = () => {
