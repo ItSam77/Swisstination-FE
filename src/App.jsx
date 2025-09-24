@@ -4,6 +4,7 @@ import Signup from './pages/signup'
 import Preference from './pages/preference'
 import LandingPage from './pages/landingpage'
 import Review from './pages/review'
+import ThankYou from './pages/thankYou'
 import { authAPI, userAPI } from './services/api'
 import './App.css'
 
@@ -104,6 +105,8 @@ function App() {
         return <LandingPage />
       case 'review':
         return <Review />
+      case 'thankYou':
+        return <ThankYou />
       default:
         return <Login />
     }

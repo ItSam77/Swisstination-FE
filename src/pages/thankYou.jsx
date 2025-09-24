@@ -7,9 +7,23 @@ const ThankYou = ({ submittedDestination, submittedRating }) => {
   const [user, setUser] = useState(null)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [reviewData, setReviewData] = useState(null)
 
   useEffect(() => {
     fetchUserProfile()
+    
+    // Check for review success data from sessionStorage
+    const reviewSuccess = sessionStorage.getItem('reviewSuccess')
+    if (reviewSuccess) {
+      try {
+        const data = JSON.parse(reviewSuccess)
+        setReviewData(data)
+        // Clear the session storage after reading
+        sessionStorage.removeItem('reviewSuccess')
+      } catch (error) {
+        console.error('Error parsing review success data:', error)
+      }
+    }
   }, [])
 
   // Close dropdown when clicking outside
@@ -163,24 +177,41 @@ const ThankYou = ({ submittedDestination, submittedRating }) => {
             Thank you for your review!
           </h2>
           
-          <p className="text-lg text-gray-700 mb-6 max-w-lg mx-auto">
-            It'll make our recommendation model more better. Your feedback helps us provide 
-            more accurate and personalized destination suggestions for you and other travelers.
-          </p>
+          {reviewData?.destinationName ? (
+            <p className="text-lg text-gray-700 mb-6 max-w-lg mx-auto">
+              Your review for <span className="font-semibold text-emerald-700">{reviewData.destinationName}</span> has been submitted successfully! 
+              It'll help improve our recommendation model and provide better suggestions for you and other travelers.
+            </p>
+          ) : (
+            <p className="text-lg text-gray-700 mb-6 max-w-lg mx-auto">
+              It'll make our recommendation model more better. Your feedback helps us provide 
+              more accurate and personalized destination suggestions for you and other travelers.
+            </p>
+          )}
 
           {/* Review Summary */}
-          {submittedDestination && (
+          {(reviewData || submittedDestination) && (
             <div className="bg-emerald-50/80 border border-emerald-200/50 rounded-xl p-6 mb-8 max-w-md mx-auto">
               <h3 className="font-semibold text-emerald-800 mb-3">Your Review Summary</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
+              <div className="space-y-3">
+                <div className="flex justify-between items-start">
                   <span className="text-emerald-700">Destination:</span>
-                  <span className="font-medium text-emerald-800">{submittedDestination}</span>
+                  <span className="font-medium text-emerald-800 text-right flex-1 ml-3">
+                    {reviewData?.destinationName || submittedDestination}
+                  </span>
                 </div>
+                {reviewData?.categoryName && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-emerald-700">Category:</span>
+                    <span className="text-xs text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">
+                      {reviewData.categoryName}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center">
                   <span className="text-emerald-700">Rating:</span>
                   <div className="flex space-x-1">
-                    {renderStars(submittedRating)}
+                    {renderStars(reviewData?.rating || submittedRating)}
                   </div>
                 </div>
               </div>

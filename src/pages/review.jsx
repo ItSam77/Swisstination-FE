@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { authAPI } from '../services/api'
+import { authAPI, destinationAPI } from '../services/api'
 import CloudBackground from '../components/CloudBackground'
 import profileImage from '../assets/profile.png'
 
@@ -8,6 +8,11 @@ const Review = () => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [destinationId, setDestinationId] = useState('')
+  const [selectedDestination, setSelectedDestination] = useState(null)
+  const [destinations, setDestinations] = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showDestinationDropdown, setShowDestinationDropdown] = useState(false)
+  const [isLoadingDestinations, setIsLoadingDestinations] = useState(false)
   const [rating, setRating] = useState(0)
   const [review, setReview] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -15,24 +20,28 @@ const Review = () => {
 
   useEffect(() => {
     fetchUserProfile()
+    fetchDestinations()
   }, [])
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.profile-dropdown')) {
         setShowProfileDropdown(false)
       }
+      if (!event.target.closest('.destination-search')) {
+        setShowDestinationDropdown(false)
+      }
     }
 
-    if (showProfileDropdown) {
+    if (showProfileDropdown || showDestinationDropdown) {
       document.addEventListener('click', handleClickOutside)
     }
 
     return () => {
       document.removeEventListener('click', handleClickOutside)
     }
-  }, [showProfileDropdown])
+  }, [showProfileDropdown, showDestinationDropdown])
 
   const fetchUserProfile = async () => {
     try {
@@ -40,6 +49,38 @@ const Review = () => {
       setUser(response.user)
     } catch (error) {
       console.error('Error fetching user profile:', error)
+    }
+  }
+
+  const fetchDestinations = async () => {
+    try {
+      setIsLoadingDestinations(true)
+      console.log('Fetching destinations...')
+      const response = await destinationAPI.getAllDestinations()
+      console.log('Destinations response:', response)
+      const destinationsList = response.destinations || []
+      console.log('Destinations list:', destinationsList)
+      setDestinations(destinationsList)
+    } catch (error) {
+      console.error('Error fetching destinations:', error)
+      // Fallback data for testing if API fails
+      const fallbackDestinations = [
+        { destinasi_id: "1", nama_destinasi: "Zermatt & Matterhorn (Valais)", category_name: "Natural Attractions" },
+        { destinasi_id: "2", nama_destinasi: "Lauterbrunnen", category_name: "Natural Attractions" },
+        { destinasi_id: "3", nama_destinasi: "Grindelwald & First/Schreckhorn", category_name: "Natural Attractions" },
+        { destinasi_id: "7", nama_destinasi: "Lake Geneva (Montreux & Vevey)", category_name: "Natural Attractions" },
+        { destinasi_id: "11", nama_destinasi: "Zürich", category_name: "Cities" },
+        { destinasi_id: "12", nama_destinasi: "Genève (Geneva)", category_name: "Cities" },
+        { destinasi_id: "14", nama_destinasi: "Bern", category_name: "Cities" },
+        { destinasi_id: "17", nama_destinasi: "Château de Chillon (Montreux)", category_name: "Cultural Sites" },
+        { destinasi_id: "27", nama_destinasi: "Zermatt (Ski & Glacier Paradise)", category_name: "Adventure Sports" },
+        { destinasi_id: "33", nama_destinasi: "Montreux Jazz Festival", category_name: "Events & Festivals" }
+      ]
+      console.log('Using fallback data:', fallbackDestinations)
+      setDestinations(fallbackDestinations)
+      setMessage('Using sample data (API connection failed)')
+    } finally {
+      setIsLoadingDestinations(false)
     }
   }
 
@@ -59,11 +100,42 @@ const Review = () => {
     window.dispatchEvent(new CustomEvent('navigate', {detail: 'landingpage'}))
   }
 
+  // Filter destinations based on search query
+  const filteredDestinations = destinations.filter(dest => {
+    if (searchQuery.length < 3) {
+      return true // Show all if less than 3 characters
+    }
+    const query = searchQuery.toLowerCase()
+    return dest.nama_destinasi.toLowerCase().includes(query) ||
+           dest.destinasi_id.toString().toLowerCase().includes(query) ||
+           (dest.category_name && dest.category_name.toLowerCase().includes(query))
+  })
+
+  const handleDestinationSearch = (e) => {
+    const query = e.target.value
+    setSearchQuery(query)
+    setShowDestinationDropdown(true)
+  }
+
+  const handleDestinationSelect = (destination) => {
+    setSelectedDestination(destination)
+    setDestinationId(destination.destinasi_id)
+    setSearchQuery(destination.nama_destinasi)
+    setShowDestinationDropdown(false)
+  }
+
+  const handleSearchInputFocus = () => {
+    console.log('Input focused, showing dropdown')
+    console.log('Destinations:', destinations)
+    console.log('filteredDestinations:', filteredDestinations)
+    setShowDestinationDropdown(true)
+  }
+
   const handleSubmitReview = async (e) => {
     e.preventDefault()
     
-    if (!destinationId || rating === 0) {
-      setMessage('Please fill in all required fields')
+    if (!selectedDestination || rating === 0) {
+      setMessage('Please select a destination and provide a rating')
       return
     }
 
@@ -73,7 +145,7 @@ const Review = () => {
     try {
       // TODO: Add API call to save review to ratings table
       // const response = await reviewAPI.submitReview({
-      //   destination_id: destinationId,
+      //   destination_id: selectedDestination.destinasi_id,
       //   rating: rating,
       //   review: review
       // })
@@ -81,10 +153,15 @@ const Review = () => {
       // Simulate API call for now
       await new Promise(resolve => setTimeout(resolve, 1500))
       
-      setMessage('Review submitted successfully! This will help improve our recommendations.')
-      setDestinationId('')
-      setRating(0)
-      setReview('')
+      // Store success message for thank you page
+      sessionStorage.setItem('reviewSuccess', JSON.stringify({
+        destinationName: selectedDestination.nama_destinasi,
+        categoryName: selectedDestination.category_name,
+        rating: rating
+      }))
+      
+      // Redirect to thank you page
+      window.dispatchEvent(new CustomEvent('navigate', {detail: 'thankYou'}))
       
     } catch (error) {
       setMessage(`Error: ${error.message}`)
@@ -208,19 +285,86 @@ const Review = () => {
 
         {/* Review Form */}
         <form onSubmit={handleSubmitReview} className="space-y-6">
-          <div>
-            <label htmlFor="destinationId" className="block text-sm font-medium text-gray-800 mb-2">
-              Destination ID *
+          <div className="destination-search relative">
+            <label htmlFor="destinationSearch" className="block text-sm font-medium text-gray-800 mb-2">
+              Select Destination *
             </label>
-            <input
-              type="text"
-              id="destinationId"
-              value={destinationId}
-              onChange={(e) => setDestinationId(e.target.value)}
-              required
-              placeholder="Enter destination ID"
-              className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/20 text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                id="destinationSearch"
+                value={searchQuery}
+                onChange={handleDestinationSearch}
+                onFocus={handleSearchInputFocus}
+                required
+                placeholder={isLoadingDestinations ? "Loading destinations..." : "Search for a destination..."}
+                disabled={isLoadingDestinations}
+                className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/20 text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200 disabled:opacity-50"
+              />
+              
+              {/* Search Icon */}
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                {isLoadingDestinations ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-400"></div>
+                ) : (
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                )}
+              </div>
+
+              {/* Dropdown */}
+              {showDestinationDropdown && !isLoadingDestinations && (
+                <div className="absolute z-50 w-full mt-1 bg-white border-2 border-emerald-400 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                  {filteredDestinations.length > 0 ? (
+                    <>
+                      {searchQuery.length < 3 && (
+                        <div className="px-4 py-2 text-sm text-gray-600 bg-blue-50/50 border-b border-gray-200/50">
+                          {destinations.length} destinations available. Type 3+ characters to search.
+                        </div>
+                      )}
+                      {filteredDestinations.map((destination) => (
+                        <button
+                          key={destination.destinasi_id}
+                          type="button"
+                          onClick={() => handleDestinationSelect(destination)}
+                          className="w-full text-left px-4 py-3 hover:bg-emerald-500/10 transition-colors duration-200 border-b border-gray-200/30 last:border-b-0"
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-800">{destination.nama_destinasi}</p>
+                            </div>
+                            {destination.category_name && (
+                              <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full ml-2 flex-shrink-0">
+                                {destination.category_name}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="px-4 py-3 text-sm text-gray-600 text-center">
+                      {searchQuery.length >= 3 ? 'No destinations found matching your search.' : 'Start typing to search destinations...'}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Selected Destination Preview */}
+            {selectedDestination && (
+              <div className="mt-2 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm font-medium text-emerald-800">Selected: {selectedDestination.nama_destinasi}</p>
+                  {selectedDestination.category_name && (
+                    <span className="text-xs text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">
+                      {selectedDestination.category_name}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -251,7 +395,7 @@ const Review = () => {
 
           <button
             type="submit"
-            disabled={isSubmitting || !destinationId || rating === 0}
+            disabled={isSubmitting || !selectedDestination || rating === 0}
             className="w-full py-4 px-6 bg-gradient-to-r from-emerald-400 to-teal-500 text-white font-semibold rounded-xl hover:from-emerald-500 hover:to-teal-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
           >
             {isSubmitting ? (
