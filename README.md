@@ -33,4 +33,4 @@ This is the final project for the BISA-AI app development program.
 
 ⚠️ **This is only the frontend application and is not integrated with the backend.** The app will be limited to the first page only.
 
-**Backend Repository:** https://github.com/ItSam77/Swisstination-BE
+**Backend Repository:** https://github.com/ItSam77/Swisstination-BEs
