@@ -1,12 +1,36 @@
-# React + Vite
+# Swisstination Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the final project for the BISA-AI app development program.
 
-Currently, two official plugins are available:
+## How to Run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. **Clone the repository:**
+    ```bash
+    git clone https://github.com/ItSam77/Swisstination-FE.git
+    ```
 
-## Expanding the ESLint configuration
+2. **Navigate to the project directory:**
+    ```bash
+    cd Swisstination-FE/
+    ```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+3. **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+4. **Build the project:**
+    ```bash
+    npm run build
+    ```
+
+5. **Start the development server:**
+    ```bash
+    npm run dev
+    ```
+
+## Important Note
+
+⚠️ **This is only the frontend application and is not integrated with the backend.** The app will be limited to the first page only.
+
+**Backend Repository:** https://github.com/ItSam77/Swisstination-BE
