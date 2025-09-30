@@ -29,6 +29,9 @@ This is the final project for the BISA-AI app development program.
     npm run dev
     ```
 
+6. **View the application:**
+    Open your browser and navigate to `localhost:8000`
+
 ## Important Note
 
 ⚠️ **This is only the frontend application and is not integrated with the backend.** The app will be limited to the first page only.
