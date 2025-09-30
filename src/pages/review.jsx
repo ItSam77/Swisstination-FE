@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { authAPI, destinationAPI } from '../services/api'
+import { authAPI, destinationAPI, reviewAPI } from '../services/api'
 import CloudBackground from '../components/CloudBackground'
 import profileImage from '../assets/profile.png'
 
@@ -143,15 +143,14 @@ const Review = () => {
     setMessage('')
 
     try {
-      // TODO: Add API call to save review to ratings table
-      // const response = await reviewAPI.submitReview({
-      //   destination_id: selectedDestination.destinasi_id,
-      //   rating: rating,
-      //   review: review
-      // })
+      // Submit review to the ratings table
+      const response = await reviewAPI.submitReview({
+        destination_id: parseInt(selectedDestination.destinasi_id),
+        rating: rating,
+        review: review
+      })
 
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      console.log('Review submitted successfully:', response)
       
       // Store success message for thank you page
       sessionStorage.setItem('reviewSuccess', JSON.stringify({
@@ -164,7 +163,8 @@ const Review = () => {
       window.dispatchEvent(new CustomEvent('navigate', {detail: 'thankYou'}))
       
     } catch (error) {
-      setMessage(`Error: ${error.message}`)
+      console.error('Review submission error:', error)
+      setMessage(`Error submitting review: ${error.message || 'Please try again'}`)
     } finally {
       setIsSubmitting(false)
     }
